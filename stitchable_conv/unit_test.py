@@ -446,8 +446,16 @@ def test5(): # torch에서 gpu memory 사용량을 low level하게 체크하는 
     b = a
     del a # a에 대한 reference cnt만 감소. b가 여전히 mem_A를 포인팅 하므로 mem_A는 사라지지 않음
     print_memory("after alloc")
-  gpu_memory_chk_example()	
+  gpu_memory_chk_example() 
+  # 함수가 끝났으므로 mem_A를 가르키는 모든 포인터가 사라짐. 
+  # reference cnt=0이므로 allocated에서는 제외됨
+  # 단, reserved에서는 사라지지 않음
   print_memory("after free")
+  torch.cuda.empty_cache() 
+  # empty_cache 후에는 pytorch가 괸리하는 gpu memory를 모두 해제함. reserved도 0이 됨.
+  # 단, torch의 cuda kernel 함수들이 차지하는 메모리 (800~1000MB)는 프로그램이 종료될때까지 절대 해제되지 않음.
+  print_memory("after torch.cuda.empty_cache")
+  print("end program")
 
 # ======================================================== #
 # unit test main
@@ -457,7 +465,7 @@ if __name__ == "__main__":
   # test1() # stitchable conv가 vanila conv와 동작이 같은지 작은 이미지로 직접 숫자 확인
   # test2() # stitchable conv가 random 숫자에 대해서도 vanila conv와 동작이 같은지 확인
   # test3() # stitchable conv가 큰 이미지에 대해서도 잘 동작하는지 확인
-  test4() # unet에서 stitcable conv 사용법 예시. vanilla unet과 stitchable unet의 메모리 사용량도 확인함
+  # test4() # unet에서 stitcable conv 사용법 예시. vanilla unet과 stitchable unet의 메모리 사용량도 확인함
   test5() # torch에서 gpu memory 사용량을 low level하게 체크하는 방식을 보여주는 예제
   pass
 

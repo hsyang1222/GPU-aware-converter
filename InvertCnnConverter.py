@@ -59,7 +59,7 @@ class DownInvertibleBlock(nn.Module):
                              ), keep_input=False, keep_input_inverse=False)
     
         
-        scale = self.make_scale(in_c, out_c)
+        scale = self.make_scale(out_c, in_c)
         kernel_size = (scale, 1, 1)
         self.down_channel = torch.nn.MaxPool3d(kernel_size)
     

@@ -438,7 +438,7 @@ def test5(): # torch에서 gpu memory 사용량을 low level하게 체크하는 
     print(f'alloc={alloc:.0f} / {max_alloc:.0f} MB, reserved={reserved:.0f} / {max_reserved:.0f} MB ')
 
   print_memory("init")
-  torch.ones(3).cuda()
+  torch.ones(3).cuda() # torch가 최초로 cuda 사용시, torch의 cuda kernel 함수들이 로드됨 (800~1000MB 정도 차지함)
   print_memory("cuda on")
   def gpu_memory_chk_example():
     print_memory("before alloc")

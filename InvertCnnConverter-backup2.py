@@ -3,8 +3,6 @@ import torch.nn as nn
 import memcnn
 from collections import OrderedDict
 import copy
-from tqdm import tqdm
-import stitchable_conv.StitchableConv2d as stich
 
 class UpInvertibleBlock(nn.Module):
      def __init__(self, in_c, out_c, conv_param):
@@ -74,8 +72,7 @@ def conv2d_to_invertible(block, inplace=True) :
     for i, (name, module) in enumerate(block.named_modules()) : 
         #print(i, name)
         if '.' not in name and isinstance(module, torch.nn.Conv2d) \
-             and not isinstance(module, memcnn.InvertibleModuleWrapper) \
-             and not isinstance(module, stich.StitchableConv2d):
+             and not isinstance(module, memcnn.InvertibleModuleWrapper):
             in_c = module.in_channels
             out_c = module.out_channels
             k = module.kernel_size
@@ -85,37 +82,24 @@ def conv2d_to_invertible(block, inplace=True) :
             t = module.transposed
             op = module.output_padding
             g = module.groups
-            
-            #condition stichable
-            if in_c == 1024 : 
-                #only support same filter size for each dim
-                k = k[0]
-                s = s[0]
-                p = p[0]
-                
-                scnv2 = stich.StitchableConv2d(in_c,out_c,k,s,p,[128,128])
-                replace_modules[name] = scnv2
-                
-            #condition invertible
-            elif True :    
-                if in_c == out_c : 
-                    #print(name, module, "\t\t-->")
-                    fm_input_size = in_c // 2
-                    gm_input_size = in_c - fm_input_size
-                    conv2d = memcnn.InvertibleModuleWrapper(fn= \
-                                 memcnn.AdditiveCoupling(
-                                        Fm=torch.nn.Conv2d(fm_input_size, fm_input_size, k, s, p, d, g),
-                                        Gm=torch.nn.Conv2d(gm_input_size, gm_input_size, k, s, p, d, g),
-                                 ), keep_input=False, keep_input_inverse=False)
-                    replace_modules[name] = conv2d
-                    #print(conv2d)
+            if in_c == out_c : 
+                #print(name, module, "\t\t-->")
+                fm_input_size = in_c // 2
+                gm_input_size = in_c - fm_input_size
+                conv2d = memcnn.InvertibleModuleWrapper(fn= \
+                             memcnn.AdditiveCoupling(
+                                    Fm=torch.nn.Conv2d(fm_input_size, fm_input_size, k, s, p, d, g),
+                                    Gm=torch.nn.Conv2d(gm_input_size, gm_input_size, k, s, p, d, g),
+                             ), keep_input=False, keep_input_inverse=False)
+                replace_modules[name] = conv2d
+                #print(conv2d)
+            else : 
+                if in_c < out_c : 
+                    ub = UpInvertibleBlock(in_c, out_c, (k,s,p,d,g))
+                    replace_modules[name] = ub
                 else : 
-                    if in_c < out_c : 
-                        ub = UpInvertibleBlock(in_c, out_c, (k,s,p,d,g))
-                        replace_modules[name] = ub
-                    else : 
-                        db = DownInvertibleBlock(in_c, out_c, (k,s,p,d,g))
-                        replace_modules[name] = db
+                    db = DownInvertibleBlock(in_c, out_c, (k,s,p,d,g))
+                    replace_modules[name] = db
                    
                
     #print("after for loop", replace_modules)       

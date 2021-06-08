@@ -5,6 +5,7 @@ from collections import OrderedDict
 import copy
 from tqdm import tqdm
 import stitchable_conv.StitchableConv2d as stich
+from torch.utils.checkpoint import checkpoint
 
 class UpInvertibleBlock(nn.Module):
      def __init__(self, in_c, out_c, conv_param):
@@ -120,6 +121,41 @@ def conv2d_to_invertible(block, inplace=True) :
                
     #print("after for loop", replace_modules)       
     block._modules = replace_modules
+
+    
+class CheckpointModule(nn.Module):
+    def __init__(self, module):
+        super().__init__()
+        self.module = module
+
+    def forward(self, *args) :
+        return checkpoint(self.module, *args)
+        
+    
+
+    
+    
+def checkpoint_debugging(original_forward, x):
+    print(x.shape)
+    print(original_forward)
+    return checkpoint(original_forward, x)
+    
+def top_forward_to_checkpoint(block, last_module_name=None) : 
+    assert last_module_name is not None, "you must insert name of module last called in forward path"
+    assert last_module_name in block._modules, "there is no %s module" % last_module_name
+    replace_modules = copy.deepcopy(block._modules)  
+    for i, (name, module) in enumerate(block.named_modules()) : 
+        if '.' not in name and name!= '' \
+            and not isinstance(module, CheckpointModule) \
+            and name != last_module_name : # only get top module
+            cpm = CheckpointModule(module)
+            replace_modules[name] = cpm
+    block._modules = replace_modules
+
+def convert_module(top_module, inplace=True) :
+    assert inplace==True, "only inplace convert is supported now"
+    top_forward_to_checkpoint(top_module)
+    dfs_conv2d_to_invertible(top_module, inplace)
     
     
 def dfs_conv2d_to_invertible(top_module, inplace=True) : 

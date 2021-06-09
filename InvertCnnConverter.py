@@ -67,9 +67,30 @@ class DownInvertibleBlock(nn.Module):
         self.down_channel = torch.nn.MaxPool3d(kernel_size)
     
     
+class RestoreStichableConv2d(stich.StitchableConv2d) : 
+    def __init__(self, in_c,out_c,k,s,p, fetch_size) :
+        super().__init__(in_c,out_c,k,s,p, fetch_size)
+        self.device_restore = None
+        
+    def forward(self, x_in_device) : 
+        if self.device_restore is None : 
+            self.device_restore = str(x_in_device.device)
+            print("RestoreClass move forward/backward tensor from cpu to %s\n\tof layer(%s)" % \
+                  (self.device_restore, super().__str__()))
+        #print("before run stiachable:", x_in_device.shape, x_in_device.device, self.device_restore)
+        
+        super().cpu()
+        x_cpu = x_in_device.cpu()
+        x_cpu = super().forward(x_cpu)
+        
+        x_in_device = x_cpu.to(self.device_restore)
+        #print("after run stiachable:", x_in_device.shape, x_in_device.device, self.device_restore)
+        return x_in_device
     
-
-def conv2d_to_invertible(block, inplace=True) : 
+    def __str__(self) : 
+        return "RestoreClass("+ super().__str__() + ")"
+    
+def conv2d_to_invertible(block, inplace=True, device='cpu') : 
     replace_modules = copy.deepcopy(block._modules)     
     #print("before for loop", replace_modules)
     for i, (name, module) in enumerate(block.named_modules()) : 
@@ -94,7 +115,7 @@ def conv2d_to_invertible(block, inplace=True) :
                 s = s[0]
                 p = p[0]
                 
-                scnv2 = stich.StitchableConv2d(in_c,out_c,k,s,p,[128,128])
+                scnv2 = RestoreStichableConv2d(in_c,out_c,k,s,p,[128,128])
                 replace_modules[name] = scnv2
                 
             #condition invertible
@@ -152,9 +173,9 @@ def top_forward_to_checkpoint(block, last_module_name=None) :
             replace_modules[name] = cpm
     block._modules = replace_modules
 
-def convert_module(top_module, inplace=True) :
+def convert_module(top_module, last_module_name=None, inplace=True) :
     assert inplace==True, "only inplace convert is supported now"
-    top_forward_to_checkpoint(top_module)
+    top_forward_to_checkpoint(top_module, last_module_name)
     dfs_conv2d_to_invertible(top_module, inplace)
     
     

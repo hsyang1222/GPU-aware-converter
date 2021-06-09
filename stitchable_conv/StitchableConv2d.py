@@ -202,12 +202,12 @@ class StitchableConv2d(nn.Module):
     return StitchableConv2dFunction.apply(input, self.weight, self.bias, self.stride, self.padding,
       self.fetch_shape, self.reception_shape, self.grid_shape)
 
-    def __str__(self) :
-        return ("StitchableConv2d(in_channel=%d, out_channel=%d, kernel=%d, stride=%d, padding=%d, fetch_shape=" % \
-                (self.in_channels, self.out_channels, self.kernel_size, self.stride, self.padding)) + str(self.fetch_shape)
-    
-    def __repr__(self) : 
-        return str(self)
+  def __str__(self) :
+    return ("StitchableConv2d(in_channel=%d, out_channel=%d, kernel=%d, stride=%d, padding=%d, fetch_shape=" % \
+            (self.in_channels, self.out_channels, self.kernel_size, self.stride, self.padding)) + str(self.fetch_shape)
+
+  def __repr__(self) : 
+    return str(self)
 
 class CpuToGpu(nn.Module):
   def __init__(self, device):

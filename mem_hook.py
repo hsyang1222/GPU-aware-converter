@@ -27,3 +27,13 @@ def _generate_mem_hook(handle_ref, mem, idx, hook_type, exp):
         })
 
     return hook
+
+def _add_memory_hooks(idx, mod, mem_log, exp, hr):
+    h = mod.register_forward_pre_hook(_generate_mem_hook(hr, mem_log, idx, 'pre', exp))
+    hr.append(h)
+
+    h = mod.register_forward_hook(_generate_mem_hook(hr, mem_log, idx, 'fwd', exp))
+    hr.append(h)
+
+    h = mod.register_backward_hook(_generate_mem_hook(hr, mem_log, idx, 'bwd', exp))
+    hr.append(h)

@@ -5,7 +5,11 @@ Currently optimized for changing unet.
 
 # requirements
  
- - memcnn(https://memcnn.readthedocs.io/en/latest/installation.html).
+ - memcnn(https://memcnn.readthedocs.io/en/latest/installation.html). 
+ - fastmri(https://github.com/facebookresearch/fastMRI)
+   - install from git repository
+   - visit https://fastmri.med.nyu.edu/ and submit Name, Email, Istitution
+   - download dataset knee + singlecoil + validation
  
  - See requirements.txt for accurate versions and test environments.
  

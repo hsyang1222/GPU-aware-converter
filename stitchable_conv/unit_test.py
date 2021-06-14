@@ -372,6 +372,9 @@ def test4(): # unet에서 stitcable conv 사용법 예시. vanilla unet과 stitc
     def scope(): # reference cnt를 줄이기위한 scope
       debug_memory("before init", level=0)
       model = Model(False).cuda()
+      print(model)
+      for m in model.modules():
+        m.register_full_backward_hook(lambda a, b, c: debug_memory("[backward] ", level=2))
       input = torch.ones(1,1,1024,1024).cuda()
       label = torch.zeros(1,1,1024,1024).cuda()
       debug_memory("after init", level=0)
@@ -389,6 +392,8 @@ def test4(): # unet에서 stitcable conv 사용법 예시. vanilla unet과 stitc
     def scope():
       debug_memory("before init", level=0)
       model = Model(True).cuda()
+      for m in model.modules():
+        m.register_full_backward_hook(lambda a, b, c: debug_memory("[backward] ", level=2))
       input = torch.ones(1,1,1024,1024) # must be cpu tensor
       label = torch.zeros(1,1,1024,1024)
       debug_memory("after init", level=0)
@@ -407,7 +412,7 @@ def test4(): # unet에서 stitcable conv 사용법 예시. vanilla unet과 stitc
   test_non_stitchable()
 
   torch.cuda.reset_max_memory_allocated()
-  torch.cuda.reset_max_memory_cached()
+  # torch.cuda.reset_max_memory_cached()
   print("\n\n\n\n")
 
   print(f'''# ******************************************************** #
@@ -465,8 +470,8 @@ if __name__ == "__main__":
   # test1() # stitchable conv가 vanila conv와 동작이 같은지 작은 이미지로 직접 숫자 확인
   # test2() # stitchable conv가 random 숫자에 대해서도 vanila conv와 동작이 같은지 확인
   # test3() # stitchable conv가 큰 이미지에 대해서도 잘 동작하는지 확인
-  # test4() # unet에서 stitcable conv 사용법 예시. vanilla unet과 stitchable unet의 메모리 사용량도 확인함
-  test5() # torch에서 gpu memory 사용량을 low level하게 체크하는 방식을 보여주는 예제
+  test4() # unet에서 stitcable conv 사용법 예시. vanilla unet과 stitchable unet의 메모리 사용량도 확인함
+  # test5() # torch에서 gpu memory 사용량을 low level하게 체크하는 방식을 보여주는 예제
   pass
 
 #%% # ==================================================== #

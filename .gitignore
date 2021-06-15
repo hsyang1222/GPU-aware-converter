@@ -1,3 +1,5 @@
 fastmri_data/singlecoil_val/
+fastmri_data
 __pycache__/
 .vscode
+.env

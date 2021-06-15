@@ -9,7 +9,7 @@ from tqdm import tqdm
 # 메모리 debug용 함수
 # ======================================================== #
 USE_TQDM = False # stitching시에 tqdm 표시 여부
-DEBUG_MEMORY = True # 모든 메모리 사용량
+DEBUG_MEMORY = False # 모든 메모리 사용량
 
 def debug_memory(title, level=2):
   # [torch.cuda.* 사용법] https://pytorch.org/docs/stable/cuda.html

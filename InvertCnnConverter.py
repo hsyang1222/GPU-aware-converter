@@ -75,8 +75,8 @@ class RestoreStichableConv2d(stich.StitchableConv2d) :
     def forward(self, x_in_device) : 
         if self.device_restore is None : 
             self.device_restore = str(x_in_device.device)
-            print("RestoreClass move forward/backward tensor from cpu to %s\n\tof layer(%s)" % \
-                  (self.device_restore, super().__str__()))
+            # print("RestoreClass move forward/backward tensor from cpu to %s\n\tof layer(%s)" % \
+                #   (self.device_restore, super().__str__()))
         #print("before run stiachable:", x_in_device.shape, x_in_device.device, self.device_restore)
         
         super().cpu()
@@ -94,7 +94,7 @@ def conv2d_to_invertible(block, inplace=True, device='cpu') :
     replace_modules = copy.deepcopy(block._modules)     
     #print("before for loop", replace_modules)
     for i, (name, module) in enumerate(block.named_modules()) : 
-        #print(i, name)
+        # print(i, name)
         if '.' not in name and isinstance(module, torch.nn.Conv2d) \
              and not isinstance(module, memcnn.InvertibleModuleWrapper) \
              and not isinstance(module, stich.StitchableConv2d):
@@ -121,7 +121,7 @@ def conv2d_to_invertible(block, inplace=True, device='cpu') :
             #condition invertible
             elif True :    
                 if in_c == out_c : 
-                    #print(name, module, "\t\t-->")
+                    # print(name, module, "\t\t-->")
                     fm_input_size = in_c // 2
                     gm_input_size = in_c - fm_input_size
                     conv2d = memcnn.InvertibleModuleWrapper(fn= \

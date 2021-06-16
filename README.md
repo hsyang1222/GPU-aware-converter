@@ -5,9 +5,8 @@ Currently optimized for changing unet.
 
 # run system demo
  - requirements
-   - memcnn : https://memcnn.readthedocs.io/en/latest/installation.html
-   - pytorch
-   - numpy
+   - pytorch : conda install pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c conda-forge
+   - memcnn : pip install memcnn
  - run plain model (without our system converter)
    - python demo-plain.py
  - run converted model with our system converter

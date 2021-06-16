@@ -91,14 +91,14 @@ class RestoreStichableConv2d(stich.StitchableConv2d) :
     def __str__(self) : 
         return "RestoreClass("+ super().__str__() + ")"
     
-def conv2d_to_invertible(block, set_stitchable=False, inplace=True, device='cpu') : 
+def conv2d_to_invertible(block, inplace=True, device='cpu') : 
     global first_stitch
     global invertible
     
     replace_modules = copy.deepcopy(block._modules)     
     #print("before for loop", replace_modules)
     for i, (name, module) in enumerate(block.named_modules()) : 
-        # print(i, name)
+        #print(i, name)
         if '.' not in name and isinstance(module, torch.nn.Conv2d) \
              and not isinstance(module, memcnn.InvertibleModuleWrapper) \
              and not isinstance(module, stich.StitchableConv2d) :
@@ -113,22 +113,11 @@ def conv2d_to_invertible(block, set_stitchable=False, inplace=True, device='cpu'
             g = module.groups
             
            
-            #condition stichable
-            if first_stitch == True or set_stitchable: 
-                #only support same filter size for each dim
-                k = k[0]
-                s = s[0]
-                p = p[0]
-                
-                scnv2 = RestoreStichableConv2d(in_c,out_c,k,s,p,[128,128])
-                replace_modules[name] = scnv2
-                
-                first_stitch = False
-                
+
             #condition invertible
-            elif invertible :    
+            if invertible :    
                 if in_c == out_c : 
-                    # print(name, module, "\t\t-->")
+                    #print(name, module, "\t\t-->")
                     fm_input_size = in_c // 2
                     gm_input_size = in_c - fm_input_size
                     conv2d = memcnn.InvertibleModuleWrapper(fn= \
@@ -150,6 +139,36 @@ def conv2d_to_invertible(block, set_stitchable=False, inplace=True, device='cpu'
     #print("after for loop", replace_modules)       
     block._modules = replace_modules
 
+def set_stitch(block, device='cpu') : 
+    replace_modules = copy.deepcopy(block._modules)     
+    #print("before for loop", replace_modules)
+    for i, (name, module) in enumerate(block.named_modules()) : 
+        #print("set stitch:", i, name, module, '.' not in name, isinstance(module, torch.nn.Conv2d), not isinstance(module, memcnn.InvertibleModuleWrapper), not isinstance(module, stich.StitchableConv2d))
+        if '.' not in name and isinstance(module, torch.nn.Conv2d) \
+             and not isinstance(module, memcnn.InvertibleModuleWrapper) \
+             and not isinstance(module, stich.StitchableConv2d) :
+            in_c = module.in_channels
+            out_c = module.out_channels
+            k = module.kernel_size
+            s = module.stride
+            p = module.padding
+            d = module.dilation
+            t = module.transposed
+            op = module.output_padding
+            g = module.groups
+            
+
+            k = k[0]
+            s = s[0]
+            p = p[0]
+                
+            scnv2 = RestoreStichableConv2d(in_c,out_c,k,s,p,[128,128])
+            replace_modules[name] = scnv2
+            
+
+
+    block._modules = replace_modules
+    
     
 class CheckpointModule(nn.Module):
     def __init__(self, module):
@@ -180,9 +199,9 @@ def top_forward_to_checkpoint(block, last_module_name=None) :
             replace_modules[name] = cpm
     block._modules = replace_modules
 
-def convert_module(top_module, last_module_name=None, inplace=True, option=['checkpoint', 'invertible', 'stitchable']) :
+def convert_module(top_module, last_module_name, inplace=True, option=['checkpoint', 'invertible', 'stitchable'], set_stitchable=['inc', 'up4']) :
     global first_stitch
-    global last_stitch
+    global invertible
     
     first_stitch = False
     invertible = False
@@ -191,17 +210,28 @@ def convert_module(top_module, last_module_name=None, inplace=True, option=['che
     if 'checkpoint' in option : 
         top_forward_to_checkpoint(top_module, last_module_name)
     if 'stitchable' in option : 
-        first_stitch = True
+        for name in set_stitchable : 
+            dfs_conv2d_to_stitchable(top_module._modules[name])
+            #rint(name)
+        #first_stitch = True
     if 'invertible' in option : 
         invertible = True
     if 'stitchable' in option or 'invertible' in option : 
         dfs_conv2d_to_invertible(top_module, last_module_name)
     
-    
-def dfs_conv2d_to_invertible(top_module, last_module_name, set_stitchable=False, inplace=True) : 
-    conv2d_to_invertible(top_module, set_stitchable, inplace=True)
+def dfs_conv2d_to_stitchable(top_module, inplace=True) : 
+    set_stitch(top_module)
     for name, module in top_module._modules.items() : 
-        if isinstance(module, memcnn.InvertibleModuleWrapper) : 
+        if isinstance(module, memcnn.InvertibleModuleWrapper) or isinstance(module, RestoreStichableConv2d) : 
+            continue
+        #print(name, len(module._modules))
+        if len(module._modules) > 0 :
+            dfs_conv2d_to_stitchable(module)
+    
+def dfs_conv2d_to_invertible(top_module, last_module_name, inplace=True) : 
+    conv2d_to_invertible(top_module, inplace=True)
+    for name, module in top_module._modules.items() : 
+        if isinstance(module, memcnn.InvertibleModuleWrapper) or isinstance(module, RestoreStichableConv2d) : 
             continue
         #print(name, len(module._modules))
         if len(module._modules) > 0 :

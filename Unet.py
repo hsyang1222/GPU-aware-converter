@@ -71,6 +71,7 @@ class Up(nn.Module):
 class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(OutConv, self).__init__()
+        #self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=3, padding=1)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
     def forward(self, x):
@@ -78,7 +79,7 @@ class OutConv(nn.Module):
     
     
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=True):
+    def __init__(self, n_channels, n_classes, bilinear=False):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -97,14 +98,25 @@ class UNet(nn.Module):
         self.outc = OutConv(64, n_classes)
 
     def forward(self, x):
+        #print("init :", x.shape)
         x1 = self.inc(x)
+        #print("inc :", x1.shape)
         x2 = self.down1(x1)
+        #print("down1 :", x2.shape)
         x3 = self.down2(x2)
+        #print("down2 :", x3.shape)
         x4 = self.down3(x3)
+        #print("down3 :", x4.shape)
         x5 = self.down4(x4)
+        #print("down4 :", x5.shape)
         x = self.up1(x5, x4)
+        #print("up1 :", x.shape)
         x = self.up2(x, x3)
+        #print("up2 :", x.shape)
         x = self.up3(x, x2)
+        #print("up3 :", x.shape)
         x = self.up4(x, x1)
+        #print("up4 :", x.shape)
         logits = self.outc(x)
+        #print("outc :", logits.shape)
         return logits

@@ -3,3 +3,4 @@ fastmri_data
 __pycache__/
 .vscode
 .env
+.ipynb_checkpoints/

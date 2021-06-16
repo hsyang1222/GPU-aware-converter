@@ -7,6 +7,7 @@ Currently optimized for changing unet.
  - requirements
    - pytorch : conda install pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c conda-forge
    - memcnn : pip install memcnn
+   - we test on python 3.8
  - run plain model (without our system converter)
    - python demo-plain.py
  - run converted model with our system converter

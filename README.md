@@ -7,9 +7,11 @@ Currently optimized for changing unet.
  - requirements
    - memcnn : https://memcnn.readthedocs.io/en/latest/installation.html
    - pytorch
-   - matplotlib
    - numpy
- - run "example-system_demo.ipynb"
+ - run plain model (without our system converter)
+   - python demo-plain.py
+ - run converted model with our system converter
+   - python demo-our_system.py
  
 # run full-type running
  - requirements

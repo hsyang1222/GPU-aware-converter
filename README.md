@@ -12,6 +12,7 @@ Currently optimized for changing unet.
     pip install torch==1.8.0+cu111 torchvision==0.9.0+cu111 torchaudio==0.8.0 -f https://download.pytorch.org/whl/torch_stable.html
     pip install memcnn
     ```
+ - Note that we provide (1) the implementation with only-python (`master branch`) and (2) the implementation with `bind.so` to use cudnnConvolutionBackwardFilter (`cpp_binding branch`). If you want to run another, `git checkout master` or `git checkout cpp_binding`.
  - see the effectiveness of a stitchable method
    - plain : python demo-stitchable.py --use_stitch 0
      - Upload images with sizes (64,4096,4096) and expect GPU assignment to be impossible to operate

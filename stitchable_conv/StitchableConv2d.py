@@ -9,7 +9,7 @@ import bind
 # ======================================================== #
 # 메모리 debug용 함수
 # ======================================================== #
-USE_TQDM = False # stitching시에 tqdm 표시 여부
+# USE_TQDM = True # stitching시에 tqdm 표시 여부
 DEBUG_MEMORY = False # 모든 메모리 사용량
 
 def debug_memory(title, level=2):
@@ -71,7 +71,7 @@ def conv2d_weight(input, weight_size, grad_output, stride, padding):
   return grad_weight
 
 # ----------------------------  ---------------------------- #
-def stitchable_conv2d_weight(input, weight_size, grad_out, stride, padding, fetch_shape, device):
+def stitchable_conv2d_weight(input, weight_size, grad_out, stride, padding, fetch_shape, device, use_tqdm=False):
   assert input.device == torch.device("cpu")
   assert grad_out.device == torch.device("cpu")
   assert stride == 1 and padding == 1 # 3x3 conv, stride=1, padding=1인 경우에 대해서만 우선 생각함
@@ -81,7 +81,7 @@ def stitchable_conv2d_weight(input, weight_size, grad_out, stride, padding, fetc
   stw = Stitcher2dForWeight(input, grad_out, fetch_shape, reception_shape)
   debug_memory("[start] stitchable_conv2d_weight: stitching", level=2)
   grad_weight = torch.zeros(weight_size, device=device)
-  for i in tqdm(range(len(stw)), desc="backward: grad_weight", disable=not USE_TQDM):
+  for i in tqdm(range(len(stw)), desc="backward: grad_weight", disable=not use_tqdm):
     crop_input, crop_grad = stw.get(i)
     crop_input, crop_grad = crop_input.to(device), crop_grad.to(device)
     crop_grad_weight = conv2d_weight(crop_input, weight_size, crop_grad, stride=1, padding=0)
@@ -92,7 +92,7 @@ def stitchable_conv2d_weight(input, weight_size, grad_out, stride, padding, fetc
 class StitchableConv2dFunction(torch.autograd.Function):
   @staticmethod
   def forward(ctx, input: torch.Tensor, weight: torch.Tensor, bias: torch.Tensor, stride: int, padding: int,
-    fetch_shape, reception_shape, grid_shape):
+    fetch_shape, reception_shape, grid_shape, use_tqdm=False):
     assert input.device == torch.device("cpu")
     device = weight.device
 
@@ -104,12 +104,13 @@ class StitchableConv2dFunction(torch.autograd.Function):
     ctx.save_for_backward(input.detach().cpu(), weight)
     ctx.stride = stride
     ctx.padding = padding
+    ctx.use_tqdm = use_tqdm
 
     out_shape = torch.tensor([input.shape[0], weight.shape[0], input.shape[2], input.shape[3]])
     debug_memory("[start] StitchableConv2dFunction.forward: stitching", level=2)
     st = Stitcher(input, out_shape, fetch_shape, reception_shape, grid_shape)
     with torch.no_grad():
-      for i in tqdm(range(len(st)), desc="forward", disable=not USE_TQDM):
+      for i in tqdm(range(len(st)), desc="forward", disable=not use_tqdm):
         crop = st.get(i)
         crop = crop.to(device)
         crop_processed = F.conv2d(crop, weight, bias, stride, padding)
@@ -125,6 +126,7 @@ class StitchableConv2dFunction(torch.autograd.Function):
     fetch_shape = ctx.fetch_shape
     reception_shape = ctx.reception_shape
     grid_shape = ctx.grid_shape
+    use_tqdm = ctx.use_tqdm
 
     input, weight = ctx.saved_tensors
     assert input.device == torch.device("cpu")
@@ -137,7 +139,7 @@ class StitchableConv2dFunction(torch.autograd.Function):
     out_shape = torch.tensor([grad_out.shape[0], weight.shape[1], grad_out.shape[2], grad_out.shape[3]])
     st = Stitcher(grad_out, out_shape, fetch_shape, reception_shape, grid_shape)
     with torch.no_grad():
-      for i in tqdm(range(len(st)), desc="backward: grad_input", disable=not USE_TQDM):
+      for i in tqdm(range(len(st)), desc="backward: grad_input", disable=not use_tqdm):
         crop = st.get(i)
         crop = crop.to(device)
         crop_processed = F.conv_transpose2d(crop, weight, None, stride, padding)
@@ -164,7 +166,7 @@ class StitchableConv2dFunction(torch.autograd.Function):
     debug_memory("[start] StitchableConv2dFunction.backward: stitching grad_weight", level=2)
     with torch.no_grad():
       # grad_weight = nn.grad.conv2d_weight(input, weight.shape, grad_out, stride, padding) # vanilla conv2d_weight
-      grad_weight = stitchable_conv2d_weight(input, weight.shape, grad_out, stride, padding, fetch_shape, device) # stitchable conv2d_weight
+      grad_weight = stitchable_conv2d_weight(input, weight.shape, grad_out, stride, padding, fetch_shape, device, use_tqdm) # stitchable conv2d_weight
     debug_memory("[end  ] StitchableConv2dFunction.backward: stitching grad_weight", level=2)
     
     # for grad_bias
@@ -174,10 +176,10 @@ class StitchableConv2dFunction(torch.autograd.Function):
       grad_bias = grad_bias.to(device)
     debug_memory("[end  ] StitchableConv2dFunction.backward: stitching grad_bias", level=2)
 
-    return grad_input, grad_weight, grad_bias, None, None, None, None, None
+    return grad_input, grad_weight, grad_bias, None, None, None, None, None, None
 
 class StitchableConv2d(nn.Module):
-  def __init__(self, in_channels, out_channels, kernel_size, stride, padding, fetch_shape):
+  def __init__(self, in_channels, out_channels, kernel_size, stride, padding, fetch_shape, use_tqdm=False):
     """
     (1) 해당 모듈은 input, output tensor는 모두 cpu tensor이다.
     (2) fetch_shape 만큼씩 gpu로 옮겨서 연산을 수행한다.
@@ -208,6 +210,7 @@ class StitchableConv2d(nn.Module):
     self.in_channels = in_channels
     self.out_channels = out_channels
     self.kernel_size = kernel_size
+    self.use_tqdm = use_tqdm
   
   def forward(self, input: torch.Tensor):
     """
@@ -217,7 +220,7 @@ class StitchableConv2d(nn.Module):
         cpu tensor
     """
     return StitchableConv2dFunction.apply(input, self.weight, self.bias, self.stride, self.padding,
-      self.fetch_shape, self.reception_shape, self.grid_shape)
+      self.fetch_shape, self.reception_shape, self.grid_shape, self.use_tqdm)
 
   def __str__(self) :
     return ("StitchableConv2d(in_channel=%d, out_channel=%d, kernel=%d, stride=%d, padding=%d, fetch_shape=" % \

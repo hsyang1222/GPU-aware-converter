@@ -8,10 +8,16 @@ Currently optimized for changing unet.
    - pytorch : conda install pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c conda-forge
    - memcnn : pip install memcnn
    - we test on python 3.8
- - run plain model (without our system converter)
-   - python demo-plain.py
- - run converted model with our system converter
-   - python demo-our_system.py
+ - see the effectiveness of a stitchable method
+   - plain : python demo-stitchable.py --use_stitch 0
+     - Upload images with sizes (64,4096,4096) and expect GPU assignment to be impossible to operate
+   - stitchable(proposed) : python demo-stitchable.py --use_stitch 1
+     - Upload images with sizes (64,4096,4096) and expect run slowly but successfully 
+ - see the effectiveness of layer convert method
+   - run plain model (without our system converter)
+     - python demo-plain.py
+   - run converted model with our system converter
+     - python demo-our_system.py
  
 # run full-type running
  - requirements

@@ -10,12 +10,14 @@ def test_stitch():
     bias = torch.rand(64)
 
     # ---------------------------- stitchable conv2d ---------------------------- #
-    input1 = input.clone().requires_grad_(True)
-    model1 = StitchableConv2d(64,64,3,1,1, fetch_shape=[512,512]).cuda()
-    model1.weight.data = weight.clone().cuda()
-    model1.bias.data = bias.clone().cuda()
-    out1 = model1(input1)
-    out1.sum().backward()
+    print("start")
+    input = input.clone().requires_grad_(True)
+    model = StitchableConv2d(64,64,3,1,1, fetch_shape=[512,512], use_tqdm=True).cuda()
+    model.weight.data = weight.clone().cuda()
+    model.bias.data = bias.clone().cuda()
+    out = model(input)
+    out.sum().backward()
+    print("end")
 
 def test_non_stitch():
     input = torch.rand(1,64,4096,4096)
@@ -23,14 +25,20 @@ def test_non_stitch():
     bias = torch.rand(64)
 
     # ---------------------------- vanila conv2d ---------------------------- #
-    input2 = input.clone().cuda().requires_grad_(True)
-    model2 = nn.Conv2d(64,64,3,1,1).cuda()
-    model2.weight.data = weight.clone().cuda()
-    model2.bias.data = bias.clone().cuda()
-    out2 = model2(input2)
-    out2.sum().backward()
+    print("start")
+    input = input.clone().cuda().requires_grad_(True)
+    model = nn.Conv2d(64,64,3,1,1).cuda()
+    model.weight.data = weight.clone().cuda()
+    model.bias.data = bias.clone().cuda()
+    out = model(input)
+    out.sum().backward()
+    print("end")
 
 if __name__ == "__main__":
+    #
+    # python demo-stitchable.py --use_stitch 1 # working
+    # python demo-stitchable.py --use_stitch 1 # OOM
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--use_stitch", type=int, default=0)
     args = parser.parse_args()

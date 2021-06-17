@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from stitchable_conv.stitcher import Stitcher
 from stitchable_conv.stitcher_conv2d_weight import Stitcher2dForWeight
 from tqdm import tqdm
+import bind
 
 # ======================================================== #
 # 메모리 debug용 함수
@@ -27,33 +28,49 @@ def debug_memory(title, level=2):
 # ======================================================== #
 # stitchable conv 구현
 # ======================================================== #
+# ---------------------------- conv2d_weigh (py) ---------------------------- #
+# def conv2d_weight(input, weight_size, grad_output, stride, padding):
+#   dilation = 1
+#   assert stride == 1 and padding == 0
+#   assert list(weight_size[2:]) == [3,3]
+
+#   in_channels = input.shape[1]
+#   out_channels = grad_output.shape[1]
+#   min_batch = input.shape[0]
+
+#   grad_output = grad_output.contiguous().repeat(
+#     1, in_channels, 1, 1)
+#   grad_output = grad_output.contiguous().view(
+#     grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2],grad_output.shape[3])
+
+#   input = input.contiguous().view(
+#     1, input.shape[0] * input.shape[1], input.shape[2], input.shape[3])
+
+#   grad_weight = torch.conv2d(input, grad_output, None, dilation, padding, stride,
+#     groups=in_channels * min_batch)
+
+#   grad_weight = grad_weight.contiguous().view(
+#     min_batch, grad_weight.shape[1] // min_batch, grad_weight.shape[2], grad_weight.shape[3])
+
+#   return grad_weight.sum(dim=0).view(
+#     in_channels, out_channels, grad_weight.shape[2], grad_weight.shape[3]).transpose(0, 1).narrow(
+#     2, 0, weight_size[2]).narrow(3, 0, weight_size[3])
+
+# ---------------------------- conv2d_weight (c++ cudnn binding) ---------------------------- #
 def conv2d_weight(input, weight_size, grad_output, stride, padding):
-  dilation = 1
-  assert stride == 1 and padding == 0
-  assert list(weight_size[2:]) == [3,3]
+  device = input.device
+  input = input.contiguous()
+  grad_output = grad_output.contiguous()
+  grad_weight = torch.zeros(weight_size, device=device)
+  # print(f'grad_weight: {grad_weight.shape}, {grad_weight.device}, {grad_weight.is_contiguous()}')
+  # print(f'input: {input.shape}, {input.device}, {input.is_contiguous()}')
+  # print(f'grad_output: {grad_output.shape}, {grad_output.device}, {grad_output.is_contiguous()}')
+  # print(f'stride: {stride}')
+  # print(f'padding: {padding}')
+  bind.conv2d_weight(grad_weight, input, grad_output, stride, padding, device.index)
+  return grad_weight
 
-  in_channels = input.shape[1]
-  out_channels = grad_output.shape[1]
-  min_batch = input.shape[0]
-
-  grad_output = grad_output.contiguous().repeat(
-    1, in_channels, 1, 1)
-  grad_output = grad_output.contiguous().view(
-    grad_output.shape[0] * grad_output.shape[1], 1, grad_output.shape[2],grad_output.shape[3])
-
-  input = input.contiguous().view(
-    1, input.shape[0] * input.shape[1], input.shape[2], input.shape[3])
-
-  grad_weight = torch.conv2d(input, grad_output, None, dilation, padding, stride,
-    groups=in_channels * min_batch)
-
-  grad_weight = grad_weight.contiguous().view(
-    min_batch, grad_weight.shape[1] // min_batch, grad_weight.shape[2], grad_weight.shape[3])
-
-  return grad_weight.sum(dim=0).view(
-    in_channels, out_channels, grad_weight.shape[2], grad_weight.shape[3]).transpose(0, 1).narrow(
-    2, 0, weight_size[2]).narrow(3, 0, weight_size[3])
-
+# ----------------------------  ---------------------------- #
 def stitchable_conv2d_weight(input, weight_size, grad_out, stride, padding, fetch_shape, device):
   assert input.device == torch.device("cpu")
   assert grad_out.device == torch.device("cpu")

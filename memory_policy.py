@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import InvertCnnConverter
+from tqdm import tqdm
 from stitchable_conv.StitchableConv2d import StitchableConv2d
 device = torch.device("cuda:2")
 nn.Conv2d(1,1,3,1,1).to(device)(torch.ones(1,1,10,10).to(device)) # for cuda kernel init
@@ -104,41 +105,42 @@ def h(ch, size, num_layer):
     loss.backward()
 
 print(f'# ---------------------------- 1 --------------------------- #')
-f(64, 1024, 1)
-f(64, 512, 1)
-f(32, 512, 1)
-for i in range(1, 5):
-    f(64, 1024, i)
-f(64, 1024, 10)
+# f(64, 1024, 1)
+# f(64, 512, 1)
+# f(32, 512, 1)
+# for i in range(1, 5):
+#     f(64, 1024, i)
+# f(64, 1024, 10)
 
 print(f'# ---------------------------- 2 ---------------------------- #')
-g(64, 1024, 1)
-g(64, 512, 1)
-g(32, 512, 1)
-for i in range(1, 5):
-    g(64, 1024, i)
-g(64, 1024, 10)
+# g(64, 1024, 1)
+# g(64, 512, 1)
+# g(32, 512, 1)
+# for i in range(1, 5):
+#     g(64, 1024, i)
+# g(64, 1024, 10)
 
 print(f'# ---------------------------- 3 ---------------------------- #')
-h(64, 1024, 1)
-h(64, 512, 1)
-h(32, 512, 1)
-for i in range(1, 5):
-    h(64, 1024, i)
-h(64, 1024, 10)
+# h(64, 1024, 1)
+# h(64, 512, 1)
+# h(32, 512, 1)
+# for i in range(1, 5):
+#     h(64, 1024, i)
+for i in tqdm(range(2)):
+    h(64, 1024, 10)
 
 print(f'# ---------------------------- 4 ---------------------------- #')
-for i in range(1, 5):
-    f(64, 512, i)
+# for i in range(1, 5):
+#     f(64, 512, i)
 
-for i in range(1, 5):
-    g(64, 512, i)
+# for i in range(1, 5):
+#     g(64, 512, i)
 
-for i in range(1, 5):
-    h(64, 1024, i)
+# for i in range(1, 5):
+#     h(64, 1024, i)
 
 print(f'# ---------------------------- 5 ---------------------------- #')
-f(64, 2048, 1)
-f(64, 1024, 1)
-f(64, 512, 1)
-f(64, 256, 1)
+# f(64, 2048, 1)
+# f(64, 1024, 1)
+# f(64, 512, 1)
+# f(64, 256, 1)

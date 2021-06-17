@@ -10,7 +10,7 @@ Currently optimized for changing unet.
    - we test on python 3.8
  - see the effectiveness of a stitchable method
    - plain : python demo-stitchable.py --use_stitch 0
-     - Upload images with sizes (64,4096,4096) and expect GPU assignment to be impossible to operate
+     - Upload images with sizes (64,4096,4096) and expect GPU assignment to be fail
    - stitchable(proposed) : python demo-stitchable.py --use_stitch 1
      - Upload images with sizes (64,4096,4096) and expect run slowly but successfully 
  - see the effectiveness of layer convert method

@@ -15,9 +15,9 @@ Currently optimized for changing unet.
      - Upload images with sizes (64,4096,4096) and expect run slowly but successfully 
  - see the effectiveness of layer convert method
    - run plain model (without our system converter)
-     - python demo-plain.py
+     - python demo-plain.py : require approximately 11GB
    - run converted model with our system converter
-     - python demo-our_system.py
+     - python demo-our_system.py : require approximately 4GB
  
 # run full-type running
  - requirements

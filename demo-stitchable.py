@@ -32,7 +32,7 @@ def test_non_stitch():
     model.bias.data = bias.clone().cuda()
     out = model(input)
     out.sum().backward()
-    print("end")
+    print("success!")
 
 if __name__ == "__main__":
     #

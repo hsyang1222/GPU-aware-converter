@@ -17,7 +17,7 @@ def test_stitch():
     model.bias.data = bias.clone().cuda()
     out = model(input)
     out.sum().backward()
-    print("end")
+    print("success!")
 
 def test_non_stitch():
     input = torch.rand(1,64,4096,4096)

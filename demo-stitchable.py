@@ -37,7 +37,7 @@ def test_non_stitch():
 if __name__ == "__main__":
     #
     # python demo-stitchable.py --use_stitch 1 # working
-    # python demo-stitchable.py --use_stitch 1 # OOM
+    # python demo-stitchable.py --use_stitch 0 # OOM
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--use_stitch", type=int, default=0)
